@@ -79,7 +79,7 @@ retros:[['projeto','Projeto/Lead','prj'],['sprint','Período da sprint','t'],['e
 const SH={members:['nome','nucleo','perfil','cargo','fase','soft','hard','ativo'],tasks:['tarefa','prio','resp','status','fim','valid','nivel'],evals:['membro','mes','iri'],leads:['cliente','empresa','servico','resp','etapa'],projects:['nome','cliente','resp','etapa','status','prazo'],chs:['projeto','etapa','chs'],fb:['projeto','tipo','etapa','nps','cls','csat'],retros:['projeto','sprint','etapa']};
 const TX={m:['csat','nps','sprint'],l:['nivel','praz','compl','retr','skl','frente']},SHT={m:['tarefa','ref','prio','resp','status','fim','valid','nivel'],l:['tarefa','ref','prio','resp','status','fim','valid','csat','nps']},tctx=()=>['leads','projects','dashL'].includes(view)?'l':'m';
 const isG=()=>['gestor','diretor'].includes(ME?.perfil),isL=()=>['gestor','diretor','gerente'].includes(ME?.perfil),PL={gestor:'Gestor',diretor:'Diretor',gerente:'Gerente',assessor:'Assessor'};
-const canW=(c,r)=>{if(!ME)return false;if(['members','leads','chs','fb','cfg'].includes(c))return isG();if(['projects','retros','desafios'].includes(c))return isL();if(c==='tasks')return isL()||!r||r.resp===ME.id;if(c==='solucoes')return isL()||!r||r.membro===ME.id;return false};
+const canW=(c,r)=>{if(!ME)return false;if(['members','leads','chs','fb','cfg'].includes(c))return isG();if(c==='projects')return true;if(['retros','desafios'].includes(c))return isL();if(c==='tasks')return isL()||!r||r.resp===ME.id;if(c==='solucoes')return isL()||!r||r.membro===ME.id;return false};
 const HS=()=>{const d=new Date();return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+(ME?.nome||'—')};
 async function setEtapa(id,v){const p=D.projects.find(x=>x.id===id);if(!p||p.etapa===v)return;try{await db.collection('projects').doc(id).update({etapa:v,hist:[...(p.hist||[]),HS()+': Etapa alterada: '+(p.etapa||'—')+' → '+v]})}catch(x){alert(x.message)}}
 const DELC=['tasks','leads','projects','chs','fb','retros','desafios','solucoes'],canDel=c=>DELC.includes(c)&&ME?.perfil==='gestor';
@@ -291,9 +291,9 @@ function lockUI(){
  document.querySelectorAll('#m [onclick]').forEach(el=>{const o=el.getAttribute('onclick')||'',m=o.match(/^ed\('(\w+)'(?:,'([\w-]*)')?/);
   if(m){const r=m[2]&&(D[m[1]]||[]).find(x=>x.id===m[2]);if(!canW(m[1],r))el.remove();return}
   if(/^mv\(/.test(o)&&!isG())el.remove();
-  if(/^(conv|nextSprint)\(/.test(o)&&!isL())el.remove()});
+  if(/^conv\(/.test(o)&&!isL())el.remove()});
  document.querySelectorAll('#m select[onchange]').forEach(s=>{const o=s.getAttribute('onchange')||'';
-  if((/^mv\(/.test(o)&&!isG())||(/db\.collection\('projects'\)/.test(o)&&!isL()))s.remove()});
+  if(/^mv\(/.test(o)&&!isG())s.remove()});
 }
 /* ----- tela de login ----- */
 function authUI(msg,ok,sair){
