@@ -213,7 +213,7 @@ function csv(){const R=repos(),k=Object.keys(R)[tab.rep||0],r=R[k];if(!r.length)
 const bk=()=>dl('backup_agrogestao.json',JSON.stringify({...D,colegas:undefined,evals:undefined},null,1));
 async function svS(){await db.collection('cfg').doc('stages').set({list:$('#sg').value.split(',').map(s=>s.trim()).filter(Boolean)})}
 const navA=([k,l])=>`<a class="${k===view?'on':''}" onclick="view='${k}';render()">${IC(k)}<span>${l}</span></a>`,NAVH=()=>navA(['home','Início'])+MODS.filter(x=>x.k!=='feedback'||isL()).map(x=>`<div class="ng">${x.n}</div>`+x.pg.map(navA).join('')).join('')+((g=>g.length?'<div class="ng">Geral</div>'+g.map(navA).join(''):'')([isL()?['rep','Relatórios Gerenciais']:null,isG()?['cfg','Configurações']:null].filter(Boolean)))+`<div class="usr"><b>${E(ME?.nome)}</b><span>${PL[ME?.perfil]||''}</span><button onclick="SB.auth.signOut()">Sair</button></div>`;
-function render(){if(!ME)return;if(!allowed(view))view='home';D.evals=iriRows().filter(e=>isL()||e.membro===ME.id);if(dg.open&&view!==document.body.dataset.v)return;$('#nv').innerHTML='<div class="brand"><img src="'+LOGO+'" alt="Agrológica"><span>Project Hub</span><small>Diretoria de Projetos</small></div>'+NAVH();document.body.dataset.v=view;const md=modOf(view);$('#m').innerHTML=(md?`<div class="crumb">${md.n}</div>`:'')+V[view]();lockUI()}
+function render(){if(!ME)return;if(!allowed(view))view='home';D.evals=iriRows().filter(e=>isL()||e.membro===ME.id);if(dg.open&&view!==document.body.dataset.v)return;$('#nv').innerHTML='<div class="brand"><img src="'+LOGO+'" alt="Agrológica"><span>Project Hub</span><small>Diretoria de Projetos</small></div>'+NAVH();document.body.dataset.v=view;const md=modOf(view);$('#m').innerHTML=(md?`<div class="crumb">${md.n}</div>`:'')+VP();lockUI()}
 /* ===== Supabase: conexão, dados, login ===== */
 const SB_URL='https://nmptmilhfhfmdhrmkjbm.supabase.co',SB_KEY='sb_publishable_RUaFUrmwWmxFXSAV0PMPWg_sTyVi6b-';
 const SB=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -253,6 +253,7 @@ function fromDb(c,r){
  for(const col of sp.cols){let v=r[col];const k=rev[col]||col;
   if(has(sp.bool,col))v=v===false?'Não':'Sim';else if(col==='hist')v=Array.isArray(v)?v:[];else if(v==null)v='';
   o[k]=v}
+ if(r.created_at)o.criado=r.created_at;
  return o;
 }
 const fail=e=>{if(e)throw new Error(e.message||e.code||'Erro de comunicação')};
@@ -329,6 +330,28 @@ SB.auth.onAuthStateChange((ev,s)=>{
  if(!session){authUI();return}
  await enter();
 })();
+
+/* ===== Filtro de período nos dashboards ===== */
+let PER={t:'tudo',ref:today()};
+const p2=n=>String(n).padStart(2,'0'),ymd=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),MN=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const perRange=()=>{if(PER.t==='tudo')return null;const r=new Date(PER.ref+'T00:00:00');let a,b;
+ if(PER.t==='semana'){a=new Date(r);a.setDate(r.getDate()-((r.getDay()+6)%7));b=new Date(a);b.setDate(a.getDate()+6)}
+ else if(PER.t==='mes'){a=new Date(r.getFullYear(),r.getMonth(),1);b=new Date(r.getFullYear(),r.getMonth()+1,0)}
+ else{const q=Math.floor(r.getMonth()/3);a=new Date(r.getFullYear(),q*3,1);b=new Date(r.getFullYear(),q*3+3,0)}
+ return[ymd(a),ymd(b)]};
+const fd=s=>s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(0,4);
+const perLabel=()=>{const R=perRange();if(!R)return'Todo o período';const a=new Date(R[0]+'T00:00:00');
+ if(PER.t==='semana')return'Semana de '+fd(R[0]).slice(0,5)+' a '+fd(R[1]);
+ if(PER.t==='mes')return MN[a.getMonth()][0].toUpperCase()+MN[a.getMonth()].slice(1)+' de '+a.getFullYear();
+ return(Math.floor(a.getMonth()/3)+1)+'º trimestre de '+a.getFullYear()+' ('+MN[a.getMonth()].slice(0,3)+'–'+MN[a.getMonth()+2].slice(0,3)+')'};
+function perSet(k){PER.t=k;if(k!=='tudo'&&!PER.ref)PER.ref=today();render()}
+function perMove(n){const r=new Date(PER.ref+'T00:00:00');if(PER.t==='semana')r.setDate(r.getDate()+7*n);else if(PER.t==='mes')r.setMonth(r.getMonth()+n,1);else r.setMonth(r.getMonth()+3*n,1);PER.ref=ymd(r);render()}
+function perHoje(){PER.ref=today();render()}
+const perBar=()=>{const R=perRange();return`<div class="tb"><span class="mu"><b>Período:</b></span>${[['tudo','Tudo'],['semana','Semana'],['mes','Mês'],['trimestre','Trimestre']].map(([k,l])=>`<button class="${PER.t===k?'on':''}" onclick="perSet('${k}')">${l}</button>`).join('')}${R?`<button onclick="perMove(-1)" title="Período anterior">‹</button><b>${perLabel()}</b><button onclick="perMove(1)" title="Próximo período">›</button><button onclick="perHoje()">Hoje</button>`:''}</div>${R?`<p class="mu" style="margin:-4px 0 12px">${{dashM:'IRI recalculado com as tarefas do período (pela data de término). Membros ativos mostra a situação atual.',dashL:'Leads pela data de entrada · projetos ativos no período · tarefas pela data de término.',dashF:'CHS, NPS e CSAT pela data do registro.'}[view]||'Leads pela data de entrada · projetos ativos no período · tarefas pela data de término · CHS, NPS e CSAT pela data do registro.'}</p>`:''}`};
+function perD(){const R=perRange(),dOf=r=>(r.criado||'').slice(0,10),inP=d=>d&&d>=R[0]&&d<=R[1];
+ return{...D,leads:D.leads.filter(l=>inP(l.entrada||dOf(l))),projects:D.projects.filter(p=>(p.inicio||dOf(p)||'0')<=R[1]&&(p.prazo||'9999')>=R[0]),tasks:D.tasks.filter(t=>inP(t.fim||t.inicio||dOf(t))),chs:D.chs.filter(r=>inP(dOf(r))),fb:D.fb.filter(r=>inP(dOf(r)))}}
+function withPer(fn){const R=perRange();let h;if(!R)h=fn();else{const D0=D;D=perD();D.evals=iriRows().filter(e=>isL()||e.membro===ME.id);try{h=fn()}finally{D=D0}}return h.replace('</h2>','</h2>'+perBar())}
+const VP=()=>['dashM','dashL','dashF','home'].includes(view)?withPer(()=>V[view]()):V[view]();
 
 
 </script></body></html>
