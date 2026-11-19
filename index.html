@@ -97,10 +97,10 @@ function rm(c,id){if(!canDel(c))return;let ex=[],msg='Excluir este registro? Est
  if(n)msg='Excluir este registro e também: '+n+'? Esta ação não pode ser desfeita.';
  $('#cm').textContent=msg;cf.showModal();$('#cy').onclick=async()=>{cf.close();try{for(const [k,L] of ex)for(const r of L)await db.collection(k).doc(r.id).delete();await db.collection(c).doc(id).delete()}catch(x){alert(x.message)}}}
 const allowed=v=>['fb','rep'].includes(v)?isL():v==='cfg'?isG():true;
-const FL=c=>c==='tasks'?F.tasks.filter(x=>!TX[tctx()].includes(x[0])&&(isL()||!['nivel','praz','compl','retr','csat','nps','valid','resp'].includes(x[0]))):c==='solucoes'&&!isL()?F.solucoes.filter(x=>!['membro','status','feedback'].includes(x[0])):F[c];
+const FL=c=>c==='tasks'?F.tasks.filter(x=>!TX[tctx()].includes(x[0])&&(isL()||!['nivel','praz','compl','retr','csat','nps','valid'].includes(x[0]))).map(x=>x[0]==='resp'&&!isL()?['resp',x[1],'self']:x):c==='solucoes'&&!isL()?F.solucoes.filter(x=>!['membro','status','feedback'].includes(x[0])):F[c];
 const nm=(c,id)=>(D[c].find(x=>x.id===id)||{}).nome||(c==='members'&&id)||'—';
 const prjName=id=>D.projects.find(x=>x.id===id)?.nome||D.leads.find(x=>x.id===id)?.cliente||id||'—';
-const opts0=t=>t==='svcp'?[['','Selecione o serviço…'],...SERVP.map(x=>[x,x])]:t==='svc'?[['','Selecione o serviço…'],...SERV.map(x=>[x,x])]:t==='mem'?D.members.map(m=>[m.id,m.nome]):t==='prj'||t==='ref'?[['',t==='ref'?'Selecione o projeto/lead…':'—'],...D.projects.map(p=>[p.id,'Projeto: '+p.nome]),...D.leads.map(l=>[l.id,'Lead: '+l.cliente+(l.servico?' ('+l.servico+')':'')])]:t==='stg'?stages().map(s=>[s,s]):Array.isArray(t)?t.map(x=>[x,x]):null;
+const opts0=t=>t==='svcp'?[['','Selecione o serviço…'],...SERVP.map(x=>[x,x])]:t==='svc'?[['','Selecione o serviço…'],...SERV.map(x=>[x,x])]:t==='self'?D.members.filter(m=>m.id===ME.id).map(m=>[m.id,m.nome]):t==='mem'?D.members.map(m=>[m.id,m.nome]):t==='prj'||t==='ref'?[['',t==='ref'?'Selecione o projeto/lead…':'—'],...D.projects.map(p=>[p.id,'Projeto: '+p.nome]),...D.leads.map(l=>[l.id,'Lead: '+l.cliente+(l.servico?' ('+l.servico+')':'')])]:t==='stg'?stages().map(s=>[s,s]):Array.isArray(t)?t.map(x=>[x,x]):null;
 const opts=t=>t==='des'?D.desafios.map(d=>[d.id,mlab(d.mes)+' — '+d.titulo]):opts0(t);
 const avg=a=>{a=a.filter(x=>x!==''&&x!=null&&!isNaN(x)).map(Number);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
 const f1=v=>v==null?'—':(Math.round(v*10)/10).toString().replace('.',',');
